@@ -9,13 +9,13 @@ const SIG_PREFIX = 'solana:charge:consumed:'
  */
 export function createTursoStore(db: Client, apiId: string, amount: string) {
   return {
-    async get(key: string): Promise<unknown | null> {
+    async get<V = unknown>(key: string): Promise<V | null> {
       const sig = key.replace(SIG_PREFIX, '')
       const result = await db.execute({
         sql: 'SELECT 1 FROM payments WHERE signature = ? LIMIT 1',
         args: [sig],
       })
-      return result.rows.length > 0 ? true : null
+      return result.rows.length > 0 ? (true as V) : null
     },
 
     async put(key: string, _value: unknown): Promise<void> {

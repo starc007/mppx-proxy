@@ -430,6 +430,7 @@ export function layout(title: string, body: string, activeNav?: string): string 
     <nav class="topbar-nav">
       <a href="/dashboard"${activeNav === 'register' ? ' class="active"' : ''}>Register API</a>
       <a href="/dashboard/pricing"${activeNav === 'pricing' ? ' class="active"' : ''}>Route Pricing</a>
+      <a href="/dashboard/demo"${activeNav === 'demo' ? ' class="active"' : ''}>Demo</a>
     </nav>
     <div class="topbar-tag"><span class="dot"></span>live</div>
   </header>
@@ -558,6 +559,291 @@ export function pricingView(
       </div>
     </form>
   `, 'pricing')
+}
+
+export function demoView(): string {
+  return layout('Demo', `
+    <div class="sec-head">
+      <h1>Live Demo</h1>
+      <span class="sub">End-to-end MPP/Solana payment · Gemini API</span>
+      <span class="badge">Devnet</span>
+    </div>
+
+    <div class="demo-wrap">
+
+      <!-- ── REQUEST CONFIG ── -->
+      <div class="demo-panel">
+        <div class="demo-panel-label">01 // REQUEST</div>
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Model</label>
+            <select id="demo-model">
+              <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+              <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+              <option value="gemini-3.1-flash-lite-preview" selected>gemini-3.1-flash-lite-preview</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Proxy Host</label>
+            <input value="proxy → generativelanguage.googleapis.com" readonly style="color:var(--text-dim);font-size:0.78rem">
+          </div>
+          <div class="form-field full no-bb">
+            <label>Prompt</label>
+            <input id="demo-prompt" placeholder="Ask anything…" value="What is 2 + 2? Answer in one short sentence.">
+          </div>
+        </div>
+        <div class="form-actions" style="justify-content:space-between">
+          <button type="button" id="demo-btn" onclick="runDemo()">Execute →</button>
+          <span class="form-hint" id="demo-status" style="font-size:0.75rem">Ready</span>
+        </div>
+      </div>
+
+      <!-- ── PAYMENT FLOW ── -->
+      <div class="demo-panel">
+        <div class="demo-panel-label">02 // PAYMENT FLOW</div>
+        <div id="flow-log" class="flow-log">
+          <div class="flow-idle">Waiting for execution…</div>
+        </div>
+      </div>
+
+      <!-- ── RESPONSE ── -->
+      <div class="demo-panel">
+        <div class="demo-panel-label">03 // RESPONSE</div>
+        <div id="response-area" class="response-area">
+          <div class="flow-idle">No response yet</div>
+        </div>
+      </div>
+
+    </div>
+
+    <style>
+    .demo-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .demo-panel {
+      border: 1px solid var(--border);
+      border-top: none;
+      background: var(--bg-card);
+    }
+
+    .demo-panel:first-child {
+      border-top: 1px solid var(--border);
+    }
+
+    .demo-panel-label {
+      padding: 8px 16px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,180,216,0.04);
+    }
+
+    .flow-log {
+      padding: 16px;
+      min-height: 180px;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .flow-idle {
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      opacity: 0;
+      transform: translateX(-6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .flow-step.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .step-num {
+      color: var(--text-dim);
+      font-size: 0.68rem;
+      min-width: 18px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .step-text { flex: 1; }
+
+    .flow-step.type-request  .step-text { color: var(--text); }
+    .flow-step.type-status402 .step-text { color: var(--amber); }
+    .flow-step.type-pay      .step-text { color: var(--amber); }
+    .flow-step.type-tx       .step-text { color: var(--text-dim); font-size: 0.75rem; }
+    .flow-step.type-confirmed .step-text { color: var(--green); }
+    .flow-step.type-retry    .step-text { color: var(--text); }
+    .flow-step.type-success  .step-text { color: var(--green); font-weight: 600; }
+    .flow-step.type-error    .step-text { color: var(--red); }
+
+    .flow-step.type-success .step-text {
+      text-shadow: 0 0 12px rgba(6,214,160,0.5);
+    }
+
+    .response-area {
+      padding: 16px;
+      min-height: 80px;
+    }
+
+    .response-text {
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--text-hi);
+      letter-spacing: 0.01em;
+      white-space: pre-wrap;
+      border-left: 3px solid var(--green);
+      padding-left: 14px;
+      margin-bottom: 12px;
+      animation: fadein 0.4s ease;
+    }
+
+    .receipt-line {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      margin-top: 4px;
+    }
+
+    .receipt-line strong { color: var(--cyan); }
+
+    @keyframes fadein {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    #demo-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    </style>
+
+    <script>
+    async function runDemo() {
+      const prompt = document.getElementById('demo-prompt').value.trim()
+      const model  = document.getElementById('demo-model').value
+      const btn    = document.getElementById('demo-btn')
+      const status = document.getElementById('demo-status')
+      const log    = document.getElementById('flow-log')
+      const resp   = document.getElementById('response-area')
+
+      if (!prompt) return
+
+      btn.disabled = true
+      btn.textContent = 'Running…'
+      status.textContent = 'executing…'
+      log.innerHTML  = ''
+      resp.innerHTML = '<div class="flow-idle">Waiting…</div>'
+
+      const host  = 'generativelanguage.googleapis.com'
+      const path  = '/v1beta/models/' + model + ':generateContent'
+
+      await addStep(log, 'request',   '→ POST ' + path)
+      await delay(180)
+      await addStep(log, 'status402', '← 402 Payment Required')
+      await delay(160)
+      await addStep(log, 'pay',       '⟳ Initiating USDC payment…')
+
+      const t0 = Date.now()
+      let result
+
+      try {
+        const r = await fetch('/dashboard/demo/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, model, host })
+        })
+        result = await r.json()
+      } catch (e) {
+        await addStep(log, 'error', '✗ Network error: ' + e.message)
+        reset(btn, status)
+        return
+      }
+
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(2)
+
+      if (result.error) {
+        await addStep(log, 'error', '✗ ' + result.error)
+        reset(btn, status)
+        return
+      }
+
+      const sig = result.signature ?? (result.receipt ? tryDecodeReceipt(result.receipt) : null)
+      if (sig) await addStep(log, 'tx', '  Tx: ' + sig)
+
+      await delay(120)
+      await addStep(log, 'confirmed', '✓ Payment confirmed on Solana devnet')
+      await delay(140)
+      await addStep(log, 'retry',     '→ Retry with Authorization: Payment <credential>')
+      await delay(200)
+      await addStep(log, 'success',   '← 200 OK  (' + elapsed + 's)')
+
+      const text = result.data?.candidates?.[0]?.content?.parts?.[0]?.text
+                ?? JSON.stringify(result.data, null, 2)
+
+      let receiptHtml = ''
+      if (result.receipt) {
+        try {
+          const rd = JSON.parse(atob(result.receipt))
+          receiptHtml = '<div class="receipt-line">'
+            + 'Receipt · method: <strong>' + rd.method + '</strong>'
+            + ' · ref: <strong>' + (rd.reference ?? '').slice(0,20) + '…</strong>'
+            + ' · ' + (rd.timestamp ?? '')
+            + '</div>'
+        } catch (_) {}
+      }
+
+      resp.innerHTML = '<div class="response-text">' + esc(text) + '</div>' + receiptHtml
+      status.textContent = 'Done (' + elapsed + 's)'
+      reset(btn, status, false)
+    }
+
+    async function addStep(log, type, text) {
+      const el = document.createElement('div')
+      el.className = 'flow-step type-' + type
+      const n = log.querySelectorAll('.flow-step').length + 1
+      el.innerHTML = '<span class="step-num">' + String(n).padStart(2,'0') + '</span>'
+                   + '<span class="step-text">' + esc(text) + '</span>'
+      log.appendChild(el)
+      el.getBoundingClientRect()
+      el.classList.add('visible')
+      await delay(20)
+    }
+
+    function tryDecodeReceipt(b64) {
+      try { return JSON.parse(atob(b64)).reference?.slice(0,48) + '…' } catch(_) { return null }
+    }
+
+    function reset(btn, status, setText = true) {
+      btn.disabled = false
+      btn.textContent = 'Execute →'
+      if (setText) status.textContent = 'Ready'
+    }
+
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>')
+    }
+    </script>
+  `, 'demo')
 }
 
 export function earningsView(

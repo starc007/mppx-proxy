@@ -5,9 +5,9 @@ const monotonicUlid = monotonicFactory()
 import type { Client } from '@libsql/client'
 import { registerApi, lookupApi, getRoutes, upsertRoute, deleteRoute, getEarnings } from '../db/queries'
 import { encryptKey } from '../crypto'
-import { registerView, pricingView, earningsView } from '../dashboard/views'
+import { registerView, pricingView, earningsView, demoView } from '../dashboard/views'
 
-type Env = { ENCRYPTION_KEY: string }
+type Env = { ENCRYPTION_KEY: string; DEMO_WALLET_SECRET?: string; SOLANA_NETWORK?: string }
 
 export function createDashboardRoutes(db: Client, env: Env): Hono {
   const app = new Hono()
@@ -67,6 +67,42 @@ export function createDashboardRoutes(db: Client, env: Env): Hono {
     if (!api) return c.text('API not found', 404)
     const { rows, total } = await getEarnings(db, api.id)
     return c.html(earningsView(host, total, rows))
+  })
+
+  app.get('/demo', (c) => c.html(demoView()))
+
+  app.post('/demo/run', async (c) => {
+    if (typeof Bun === 'undefined') {
+      return c.json({ error: 'Demo endpoint only available in Bun mode' }, 501)
+    }
+    if (!env.DEMO_WALLET_SECRET) {
+      return c.json({ error: 'DEMO_WALLET_SECRET not configured' }, 500)
+    }
+    const { prompt, model = 'gemini-2.0-flash', host = 'generativelanguage.googleapis.com' } = await c.req.json() as Record<string, string>
+
+    const { Keypair } = await import('@solana/web3.js')
+    const bs58 = await import('bs58')
+    const { solana, Mppx } = await import('mpp-solana/client')
+
+    const keypair = Keypair.fromSecretKey(bs58.default.decode(env.DEMO_WALLET_SECRET))
+    const wallet = {
+      publicKey: keypair.publicKey,
+      async signTransaction(tx: any) { tx.sign([keypair]); return tx },
+    }
+
+    const network = (env.SOLANA_NETWORK ?? 'devnet') as 'devnet' | 'mainnet-beta'
+    const mppxClient = Mppx.create({ methods: [solana.charge({ wallet, network })] })
+
+    const proxyUrl = `http://localhost:3000/${host}/v1beta/models/${model}:generateContent`
+    const res = await mppxClient.fetch(proxyUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    })
+
+    const receipt = res.headers.get('Payment-Receipt')
+    const data = await res.json()
+    return c.json({ status: res.status, receipt, data })
   })
 
   return app

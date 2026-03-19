@@ -15,6 +15,7 @@ export type AppEnv = {
   SOLANA_NETWORK?: string
   SOLANA_RPC_URL?: string
   VERIFY_TIMEOUT_MS?: string
+  DEMO_WALLET_SECRET?: string
 }
 
 export function createApp(env: AppEnv) {

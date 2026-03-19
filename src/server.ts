@@ -15,6 +15,7 @@ const env = {
   SOLANA_RPC_URL: process.env.SOLANA_RPC_URL,
   USDC_MINT: process.env.USDC_MINT,
   VERIFY_TIMEOUT_MS: process.env.VERIFY_TIMEOUT_MS ?? '60000',
+  DEMO_WALLET_SECRET: process.env.DEMO_WALLET_SECRET,
 }
 
 const db = createDb(env)

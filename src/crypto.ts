@@ -10,8 +10,11 @@ function toBase64(buf: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buf)))
 }
 
-function fromBase64(b64: string): Uint8Array {
-  return Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+function fromBase64(b64: string): Uint8Array<ArrayBuffer> {
+  const decoded = atob(b64)
+  const bytes = new Uint8Array(new ArrayBuffer(decoded.length))
+  for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i)
+  return bytes
 }
 
 async function importKey(hexKey: string): Promise<CryptoKey> {
@@ -33,8 +36,10 @@ export async function encryptKey(
   hexKey: string,
 ): Promise<{ ciphertext: string; iv: string }> {
   const key = await importKey(hexKey)
-  const ivBytes = crypto.getRandomValues(new Uint8Array(12))
-  const encoded = new TextEncoder().encode(plaintext)
+  const ivBytes = crypto.getRandomValues(new Uint8Array(new ArrayBuffer(12)))
+  const raw = new TextEncoder().encode(plaintext)
+  const encoded = new Uint8Array(new ArrayBuffer(raw.length))
+  encoded.set(raw)
   const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: ivBytes }, key, encoded)
   return {
     ciphertext: toBase64(encrypted), // includes auth tag (appended by Web Crypto)

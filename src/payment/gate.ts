@@ -16,6 +16,7 @@ export type GateEnv = {
   MPP_SECRET_KEY: string
   SOLANA_NETWORK?: string
   SOLANA_RPC_URL?: string
+  USDC_MINT?: string
   // CF Workers have a 25s wall-clock limit; Bun can wait longer
   VERIFY_TIMEOUT_MS?: string
 }
@@ -32,7 +33,7 @@ export async function runPaymentGate(
   env: GateEnv,
 ): Promise<GateResult> {
   const network = (env.SOLANA_NETWORK ?? 'devnet') as 'mainnet-beta' | 'devnet'
-  const mint = USDC_MINTS[network]
+  const mint = env.USDC_MINT ?? USDC_MINTS[network]
   if (!mint) throw new Error(`Unknown SOLANA_NETWORK: ${network}`)
 
   // Extract path after the origin host segment for price resolution

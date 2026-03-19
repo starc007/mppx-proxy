@@ -13,6 +13,7 @@ const env = {
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY!,
   SOLANA_NETWORK: process.env.SOLANA_NETWORK ?? 'devnet',
   SOLANA_RPC_URL: process.env.SOLANA_RPC_URL,
+  USDC_MINT: process.env.USDC_MINT,
   VERIFY_TIMEOUT_MS: process.env.VERIFY_TIMEOUT_MS ?? '60000',
 }
 

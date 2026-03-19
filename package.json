@@ -1,8 +1,13 @@
 {
   "name": "mppx-proxy",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "test": "bun test",
+    "deploy": "wrangler deploy"
+  },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260317.1",
     "@types/bun": "latest",

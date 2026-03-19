@@ -25,3 +25,10 @@ test('exact path match works', () => {
   ]
   expect(resolvePrice('/status', exact, '0.001')).toBe('0.01')
 })
+
+test('trailing * matches multi-segment paths', () => {
+  const routes: RouteRow[] = [
+    { id: '1', api_id: 'a', path_pattern: '/v1/*', price: '0.005', priority: 0 },
+  ]
+  expect(resolvePrice('/v1/a/b/c', routes, '0.001')).toBe('0.005')
+})

@@ -9,9 +9,9 @@ function matchPattern(pattern: string, path: string): boolean {
   const escaped = pattern
     .replace(/[.+^${}()|[\]\\]/g, '\\$&')
     .replace(/\*\*/g, '.+')
-    .replace(/\*/g, '[^/]+')
-  return new RegExp(`^${escaped}$`).test(path) ||
-    new RegExp(`^${escaped}`).test(path) // allow trailing match for /*
+    .replace(/\*$/g, '.+') // trailing * matches multiple segments
+    .replace(/\*/g, '[^/]+') // non-trailing * matches single segment
+  return new RegExp(`^${escaped}$`).test(path)
 }
 
 /**

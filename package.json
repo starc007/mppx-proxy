@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run src/index.ts",
+    "dev": "bun --env-file=.dev.vars run src/server.ts",
     "test": "bun test",
     "deploy": "wrangler deploy"
   },

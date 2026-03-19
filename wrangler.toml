@@ -5,3 +5,4 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 SOLANA_NETWORK = "devnet"
+USDC_MINT = "2Cnsn4TLPWwPWZwQiLrurV8Ho33uCj1Md5RpTm7a6qsK"

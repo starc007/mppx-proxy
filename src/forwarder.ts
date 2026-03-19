@@ -1,6 +1,6 @@
 import type { ApiRow } from './db/queries'
 
-const STRIP_HEADERS = new Set(['authorization', 'host'])
+const STRIP_HEADERS = new Set(['authorization', 'host', 'accept-encoding'])
 
 /**
  * Build the outbound request to the origin API.
@@ -46,10 +46,21 @@ export function buildOriginRequest(
   })
 }
 
+const STRIP_RESPONSE_HEADERS = new Set(['content-encoding', 'transfer-encoding'])
+
 /**
  * Forward the built origin request and return the origin response.
+ * Strips content-encoding/transfer-encoding since Bun auto-decompresses the
+ * body but may keep those headers, causing double-decompression on the client.
  * Throws on network failure (caller converts to 502).
  */
 export async function forward(originReq: Request): Promise<Response> {
-  return fetch(originReq)
+  const res = await fetch(originReq)
+  const headers = new Headers()
+  res.headers.forEach((value, key) => {
+    if (!STRIP_RESPONSE_HEADERS.has(key.toLowerCase())) {
+      headers.set(key, value)
+    }
+  })
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers })
 }

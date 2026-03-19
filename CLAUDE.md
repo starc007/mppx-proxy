@@ -1,111 +1,38 @@
----
-description: Use Bun instead of Node.js, npm, pnpm, or vite.
-globs: "*.ts, *.tsx, *.html, *.css, *.js, *.jsx, package.json"
-alwaysApply: false
----
+# mppx-proxy — Claude Guidelines
 
-Default to using Bun instead of Node.js.
+## Commands
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Bun automatically loads .env, so don't use dotenv.
-
-## APIs
-
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
-
-## Testing
-
-Use `bun test` to run tests.
-
-```ts#index.test.ts
-import { test, expect } from "bun:test";
-
-test("hello world", () => {
-  expect(1).toBe(1);
-});
+```bash
+bun dev          # run locally (auto-runs DB migrations on start)
+bun test         # run all tests (18 tests)
+bun run deploy   # deploy to Cloudflare Workers
 ```
 
-## Frontend
+## Key Constraints
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
+- **Use `crypto.subtle` only** — never `node:crypto`. The proxy runs on both Cloudflare Workers and Bun; `node:crypto` is not available on Workers.
+- **Use `Uint8Array(new ArrayBuffer(n))`** — not `new Uint8Array(n)`. TypeScript infers `ArrayBufferLike` for the latter, which doesn't satisfy `BufferSource` required by Web Crypto.
+- **Don't commit `docs/`** — it's gitignored and contains generated specs/plans.
+- **No Co-Authored-By in commits.**
 
-Server:
+## Architecture
 
-```ts#index.ts
-import index from "./index.html"
+Path-based routing: `proxy.mppx.xyz/{origin-host}/{path}` → origin API with real key injected.
 
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
+Payment flow: request → 402 MPP challenge (mpp-solana) → agent pays USDC on Solana → retry with `Authorization: Payment <sig>` → verify on-chain → decrypt key → forward.
+
+- `src/payment/gate.ts` — full 402 flow via mpp-solana `Mppx.create` + `solana.charge`
+- `src/payment/store.ts` — mppx `Store` adapter backed by Turso; `put` writes to `payments` table (earnings + replay protection)
+- `src/db/migrate.ts` — run once against Turso before first deploy
+
+## Environment Variables
+
 ```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
+TURSO_URL            libsql://...
+TURSO_AUTH_TOKEN     ...
+MPP_SECRET_KEY       64-char hex (32 bytes) — signs MPP challenges
+ENCRYPTION_KEY       64-char hex (32 bytes) — AES-256-GCM for API keys
+SOLANA_NETWORK       devnet | mainnet-beta
+SOLANA_RPC_URL       optional, falls back to public endpoints
+VERIFY_TIMEOUT_MS    25000 for CF Workers, 60000 for Bun
 ```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-
-// import .css files directly and it works
-import './index.css';
-
-import { createRoot } from "react-dom/client";
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.md`.

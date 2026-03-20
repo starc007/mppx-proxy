@@ -21,6 +21,23 @@ export type GateEnv = {
   VERIFY_TIMEOUT_MS?: string
 }
 
+async function deriveReceiptSecret(hexKey: string): Promise<Uint8Array<ArrayBuffer>> {
+  const keyBytes = hexToBytes(hexKey)
+  const prefix = new TextEncoder().encode('mpp-receipt-hmac:')
+  const combined = new Uint8Array(new ArrayBuffer(prefix.length + keyBytes.length))
+  combined.set(prefix)
+  combined.set(keyBytes, prefix.length)
+  const hash = await crypto.subtle.digest('SHA-256', combined)
+  return new Uint8Array(hash)
+}
+
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(new ArrayBuffer(hex.length / 2))
+  for (let i = 0; i < bytes.length; i++)
+    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16)
+  return bytes
+}
+
 export type GateResult =
   | { status: 402; response: Response }
   | { status: 200; price: string; withReceipt: (r: Response) => Response }
@@ -45,6 +62,8 @@ export async function runPaymentGate(
   const store = createTursoStore(db, api.id, price)
   const timeoutMs = env.VERIFY_TIMEOUT_MS ? parseInt(env.VERIFY_TIMEOUT_MS) : 25_000
 
+  const receiptSecret = await deriveReceiptSecret(env.MPP_SECRET_KEY)
+
   const chargeMethod = solana.charge({
     recipient: new PublicKey(api.owner_wallet),
     mint: new PublicKey(mint),
@@ -52,6 +71,7 @@ export async function runPaymentGate(
     ...(env.SOLANA_RPC_URL ? { endpoints: [env.SOLANA_RPC_URL] } : {}),
     store,
     verifyTimeout: timeoutMs,
+    receiptSecret,
   })
 
   const mppx = Mppx.create({

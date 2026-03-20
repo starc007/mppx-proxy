@@ -9,7 +9,7 @@
         "@solana/web3.js": "^1.98.4",
         "bs58": "^6.0.0",
         "hono": "^4.12.8",
-        "mpp-solana": "^0.1.1",
+        "mpp-solana": "^0.1.2",
         "mppx": "^0.4.7",
         "ulidx": "^2.4.1",
       },
@@ -482,7 +482,7 @@
 
     "miniflare": ["miniflare@4.20260317.0", "", { "dependencies": { "@cspotcode/source-map-support": "0.8.1", "sharp": "^0.34.5", "undici": "7.24.4", "workerd": "1.20260317.1", "ws": "8.18.0", "youch": "4.1.0-beta.10" }, "bin": { "miniflare": "bootstrap.js" } }, "sha512-xuwk5Kjv+shi5iUBAdCrRl9IaWSGnTU8WuTQzsUS2GlSDIMCJuu8DiF/d9ExjMXYiQG5ml+k9SVKnMj8cRkq0w=="],
 
-    "mpp-solana": ["mpp-solana@0.1.1", "", { "dependencies": { "@noble/hashes": "^2.0.0" }, "peerDependencies": { "@solana/spl-token": "^0.4.0", "@solana/web3.js": "^1.95.0", "mppx": "^0.3.0" } }, "sha512-6CG8/0JtQ2BoMj1KwJ4H5xt6Kx7vSNrXjdPtgVp3WS4AebPOt7ng1suzdcJFv5fDyUXZWYAcYraQLD89NAQMbw=="],
+    "mpp-solana": ["mpp-solana@0.1.2", "", { "dependencies": { "@noble/hashes": "^2.0.0" }, "peerDependencies": { "@solana/spl-token": "^0.4.0", "@solana/web3.js": "^1.95.0", "mppx": "^0.3.0" } }, "sha512-7J9Z0n434k82b0P+JSzcBSxZjeU1iJm769OtnVUC/Q8+/jbD6gbdVc49i1SHScCeu8wfYb4MVrOCsUNyH7UouA=="],
 
     "mppx": ["mppx@0.4.7", "", { "dependencies": { "@remix-run/fetch-proxy": "^0.7.1", "@remix-run/node-fetch-server": "^0.13.0", "incur": "^0.3.1", "ox": "^0.14.1", "zod": "^4.3.6" }, "peerDependencies": { "@modelcontextprotocol/sdk": ">=1.25.0", "elysia": ">=1", "express": ">=5", "hono": ">=4", "viem": ">=2.46.2" }, "optionalPeers": ["@modelcontextprotocol/sdk", "elysia", "express", "hono"], "bin": { "mppx": "dist/bin.js", "mppx.src": "src/bin.ts" } }, "sha512-urfpeTjm8SBmUaciqrDRPY0DgD2+3RTAITRenQrHf9fgDEakQ/ccc715seuecU57WUwZx0Tw5ia0M4IfOz1O/w=="],
 
